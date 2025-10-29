@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+
+{% block title %}Single URL Analysis - SEO Analyzer{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 style="margin-bottom: 2rem; text-align: center;">
+        <span style="background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+            SEO Analysis
+        </span>
+    </h1>
+
+    <!-- Input Section -->
+    <div class="input-section">
+        <div class="input-group">
+            <label for="urlInput">Enter Website URL</label>
+            <input type="url" id="urlInput" placeholder="https://example.com" />
+        </div>
+        
+        <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                <input type="checkbox" id="includePerformance" checked />
+                <span>Include Performance Analysis</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                <input type="checkbox" id="includeGeo" />
+                <span>Include GEO/Local SEO</span>
+            </label>
+        </div>
+
+        <button class="btn btn-primary btn-block" onclick="analyzeURL()">Analyze SEO</button>
+    </div>
+
+    <!-- Error Message -->
+    <div id="errorMessage" class="error-message"></div>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="loading">
+        <div class="spinner"></div>
+        <p>Analyzing website... This may take a few moments.</p>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsSection" class="hidden">
+        <!-- Overall Score -->
+        <div class="score-display">
+            <div class="score-circle">
+                <span id="overallScore">0</span>
+            </div>
+            <div class="score-label">Overall SEO Score</div>
+            <p id="analyzedUrl" style="margin-top: 1rem; color: var(--text-secondary); word-break: break-all;"></p>
+        </div>
+
+        <!-- Individual Scores -->
+        <div class="metrics-grid" id="metricsGrid"></div>
+
+        <!-- Metadata Details -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">📝 Metadata Analysis</h2>
+            </div>
+            <div id="metadataDetails"></div>
+        </div>
+
+        <!-- Links Analysis -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">🔗 Link Analysis</h2>
+            </div>
+            <div id="linksDetails"></div>
+        </div>
+
+        <!-- Content Analysis -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">📄 Content Analysis</h2>
+            </div>
+            <div id="contentDetails"></div>
+        </div>
+
+        <!-- Performance Analysis -->
+        <div class="card" id="performanceCard">
+            <div class="card-header">
+                <h2 class="card-title">⚡ Performance Metrics</h2>
+            </div>
+            <div id="performanceDetails"></div>
+        </div>
+
+        <!-- Issues & Recommendations -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">⚠️ Issues Found</h2>
+                </div>
+                <ul id="issuesList" class="issue-list"></ul>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">💡 Recommendations</h2>
+                </div>
+                <ul id="recommendationsList" class="recommendation-list"></ul>
+            </div>
+        </div>
+
+        <!-- Top Keywords -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">🔑 Top Keywords</h2>
+            </div>
+            <div id="keywordsList"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+async function analyzeURL() {
+    const url = document.getElementById('urlInput').value.trim();
+    const includePerformance = document.getElementById('includePerformance').checked;
+    const includeGeo = document.getElementById('includeGeo').checked;
+    
+    if (!url) {
+        showError('Please enter a URL');
+        return;
+    }
+    
+    // Show loading
+    document.getElementById('loadingSpinner').classList.add('active');
+    document.getElementById('resultsSection').classList.add('hidden');
+    document.getElementById('errorMessage').classList.remove('active');
+    
+    try {
+        const response = await fetch('/api/analyze', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                url: url,
+                include_performance: includePerformance,
+                include_geo: includeGeo
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            displayResults(data);
+        } else {
+            showError(data.error || 'Analysis failed');
+        }
+    } catch (error) {
+        showError('Failed to analyze URL: ' + error.message);
+    } finally {
+        document.getElementById('loadingSpinner').classList.remove('active');
+    }
+}
+
+function displayResults(data) {
+    // Show results section
+    document.getElementById('resultsSection').classList.remove('hidden');
+    
+    // Display overall score
+    document.getElementById('overallScore').textContent = data.overall_score;
+    document.getElementById('analyzedUrl').textContent = data.url;
+    
+    // Color code the score
+    const scoreElement = document.getElementById('overallScore');
+    if (data.overall_score >= 8) {
+        scoreElement.className = 'score-good';
+    } else if (data.overall_score >= 5) {
+        scoreElement.className = 'score-warning';
+    } else {
+        scoreElement.className = 'score-poor';
+    }
+    
+    // Display individual metrics
+    displayMetrics(data.scores);
+    
+    // Display detailed sections
+    displayMetadata(data.metadata);
+    displayLinks(data.links);
+    displayContent(data.content);
+    
+    if (data.performance) {
+        displayPerformance(data.performance);
+    } else {
+        document.getElementById('performanceCard').style.display = 'none';
+    }
+    
+    // Display issues and recommendations
+    displayList('issuesList', data.issues);
+    displayList('recommendationsList', data.recommendations);
+    
+    // Display keywords
+    displayKeywords(data.content.keywords);
+}
+
+function displayMetrics(scores) {
+    const grid = document.getElementById('metricsGrid');
+    grid.innerHTML = '';
+    
+    const metrics = [
+        { name: 'Metadata', score: scores.metadata, icon: '📝' },
+        { name: 'Links', score: scores.links, icon: '🔗' },
+        { name: 'Content', score: scores.content, icon: '📄' },
+        { name: 'Performance', score: scores.performance, icon: '⚡' }
+    ];
+    
+    metrics.forEach(metric => {
+        const scoreClass = metric.score >= 8 ? 'score-good' : metric.score >= 5 ? 'score-warning' : 'score-poor';
+        const progressWidth = (metric.score / 10) * 100;
+        
+        grid.innerHTML += `
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-name">${metric.icon} ${metric.name}</span>
+                    <span class="metric-score ${scoreClass}">${metric.score}</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${progressWidth}%"></div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function displayMetadata(metadata) {
+    const container = document.getElementById('metadataDetails');
+    container.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+            <div>
+                <h4 style="color: var(--accent-secondary); margin-bottom: 0.5rem;">Title Tag</h4>
+                <p style="color: var(--text-primary);">${metadata.title.text || 'Not found'}</p>
+                <p style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.25rem;">
+                    Length: ${metadata.title.length} characters
+                </p>
+            </div>
+            <div>
+                <h4 style="color: var(--accent-secondary); margin-bottom: 0.5rem;">Meta Description</h4>
+                <p style="color: var(--text-primary);">${metadata.meta_description.text || 'Not found'}</p>
+                <p style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.25rem;">
+                    Length: ${metadata.meta_description.length} characters
+                </p>
+            </div>
+        </div>
+        <div style="margin-top: 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <div>
+                <h4 style="color: var(--accent-secondary); margin-bottom: 0.5rem;">Headings</h4>
+                <p style="color: var(--text-secondary);">H1: ${metadata.headings.h1_count} | H2: ${metadata.headings.h2_count} | H3: ${metadata.headings.h3_count}</p>
+            </div>
+            <div>
+                <h4 style="color: var(--accent-secondary); margin-bottom: 0.5rem;">Images</h4>
+                <p style="color: var(--text-secondary);">Total: ${metadata.images.total} | With Alt: ${metadata.images.with_alt} (${metadata.images.alt_percentage}%)</p>
+            </div>
+        </div>
+    `;
+}
+
+function displayLinks(links) {
+    const container = document.getElementById('linksDetails');
+    container.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+            <div class="metric-card">
+                <h4 style="color: var(--accent-secondary);">Internal Links</h4>
+                <p style="font-size: 2rem; font-weight: bold; color: var(--accent-primary);">${links.internal.count}</p>
+            </div>
+            <div class="metric-card">
+                <h4 style="color: var(--accent-secondary);">External Links</h4>
+                <p style="font-size: 2rem; font-weight: bold; color: var(--accent-primary);">${links.external.count}</p>
+            </div>
+            <div class="metric-card">
+                <h4 style="color: var(--accent-secondary);">Total Links</h4>
+                <p style="font-size: 2rem; font-weight: bold; color: var(--accent-primary);">${links.total_links}</p>
+            </div>
+        </div>
+    `;
+}
+
+function displayContent(content) {
+    const container = document.getElementById('contentDetails');
+    container.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <div class="metric-card">
+                <h4 style="color: var(--accent-secondary);">Word Count</h4>
+                <p style="font-size: 2rem; font-weight: bold; color: var(--accent-primary);">${content.word_count}</p>
+            </div>
+            <div class="metric-card">
+                <h4 style="color: var(--accent-secondary);">Readability</h4>
+                <p style="font-size: 2rem; font-weight: bold; color: var(--accent-primary);">${content.readability_score}/10</p>
+            </div>
+            <div class="metric-card">
+                <h4 style="color: var(--accent-secondary);">Keyword Density</h4>
+                <p style="font-size: 2rem; font-weight: bold; color: var(--accent-primary);">${content.keyword_density}%</p>
+            </div>
+        </div>
+    `;
+}
+
+function displayPerformance(performance) {
+    const container = document.getElementById('performanceDetails');
+    container.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+            <div class="metric-card">
+                <h4 style="color: var(--accent-secondary);">Performance</h4>
+                <p style="font-size: 1.5rem; font-weight: bold;" class="${getScoreClass(performance.performance_score)}">${performance.performance_score}/10</p>
+            </div>
+            <div class="metric-card">
+                <h4 style="color: var(--accent-secondary);">Accessibility</h4>
+                <p style="font-size: 1.5rem; font-weight: bold;" class="${getScoreClass(performance.accessibility_score)}">${performance.accessibility_score}/10</p>
+            </div>
+            <div class="metric-card">
+                <h4 style="color: var(--accent-secondary);">Best Practices</h4>
+                <p style="font-size: 1.5rem; font-weight: bold;" class="${getScoreClass(performance.best_practices_score)}">${performance.best_practices_score}/10</p>
+            </div>
+        </div>
+        <div>
+            <h4 style="color: var(--accent-secondary); margin-bottom: 0.75rem;">Core Web Vitals</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
+                <p style="color: var(--text-secondary);">FCP: ${performance.metrics.first_contentful_paint}</p>
+                <p style="color: var(--text-secondary);">LCP: ${performance.metrics.largest_contentful_paint}</p>
+                <p style="color: var(--text-secondary);">TTI: ${performance.metrics.time_to_interactive}</p>
+                <p style="color: var(--text-secondary);">CLS: ${performance.metrics.cumulative_layout_shift}</p>
+            </div>
+        </div>
+    `;
+}
+
+function displayList(elementId, items) {
+    const list = document.getElementById(elementId);
+    list.innerHTML = '';
+    
+    if (items.length === 0) {
+        list.innerHTML = '<li style="border: none; background: transparent; color: var(--text-secondary);">No items found</li>';
+        return;
+    }
+    
+    items.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item;
+        list.appendChild(li);
+    });
+}
+
+function displayKeywords(keywords) {
+    const container = document.getElementById('keywordsList');
+    container.innerHTML = '';
+    
+    if (keywords.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary);">No keywords found</p>';
+        return;
+    }
+    
+    const keywordsHTML = keywords.slice(0, 10).map(kw => `
+        <div style="display: inline-block; background: var(--bg-tertiary); padding: 0.5rem 1rem; border-radius: 20px; margin: 0.25rem; border: 1px solid var(--border);">
+            <span style="font-weight: 600;">${kw.keyword}</span>
+            <span style="color: var(--text-secondary); margin-left: 0.5rem;">(${kw.frequency})</span>
+        </div>
+    `).join('');
+    
+    container.innerHTML = keywordsHTML;
+}
+
+function getScoreClass(score) {
+    if (score >= 8) return 'score-good';
+    if (score >= 5) return 'score-warning';
+    return 'score-poor';
+}
+
+function showError(message) {
+    const errorDiv = document.getElementById('errorMessage');
+    errorDiv.textContent = message;
+    errorDiv.classList.add('active');
+}
+
+// Allow Enter key to trigger analysis
+document.getElementById('urlInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        analyzeURL();
+    }
+});
+</script>
+{% endblock %}
+

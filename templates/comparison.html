@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+
+{% block title %}Compare URLs - SEO Analyzer{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 style="margin-bottom: 2rem; text-align: center;">
+        <span style="background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+            Compare SEO Performance
+        </span>
+    </h1>
+
+    <!-- Input Section -->
+    <div class="input-section">
+        <div class="input-flex">
+            <div class="input-group">
+                <label for="url1Input">First Website URL</label>
+                <input type="url" id="url1Input" placeholder="https://example.com" />
+            </div>
+            <div class="input-group">
+                <label for="url2Input">Second Website URL</label>
+                <input type="url" id="url2Input" placeholder="https://competitor.com" />
+            </div>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="compareURLs()">Compare SEO</button>
+    </div>
+
+    <!-- Error Message -->
+    <div id="errorMessage" class="error-message"></div>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="loading">
+        <div class="spinner"></div>
+        <p>Comparing websites... This may take a few moments.</p>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsSection" class="hidden">
+        <!-- Winner Banner -->
+        <div id="winnerBanner" class="card" style="text-align: center; padding: 2rem; margin-bottom: 2rem;"></div>
+
+        <!-- Score Comparison -->
+        <div class="comparison-grid">
+            <div id="url1Card" class="comparison-item">
+                <h3 style="color: var(--accent-primary); margin-bottom: 1rem;">URL 1</h3>
+                <p id="url1Display" style="color: var(--text-secondary); word-break: break-all; margin-bottom: 1rem;"></p>
+                <div class="score-display" style="padding: 1rem;">
+                    <div style="font-size: 3rem; font-weight: bold;" id="url1Score">0</div>
+                    <div style="font-size: 0.875rem; color: var(--text-secondary);">Overall Score</div>
+                </div>
+                <div id="url1Metrics" style="margin-top: 1rem;"></div>
+            </div>
+
+            <div id="url2Card" class="comparison-item">
+                <h3 style="color: var(--accent-primary); margin-bottom: 1rem;">URL 2</h3>
+                <p id="url2Display" style="color: var(--text-secondary); word-break: break-all; margin-bottom: 1rem;"></p>
+                <div class="score-display" style="padding: 1rem;">
+                    <div style="font-size: 3rem; font-weight: bold;" id="url2Score">0</div>
+                    <div style="font-size: 0.875rem; color: var(--text-secondary);">Overall Score</div>
+                </div>
+                <div id="url2Metrics" style="margin-top: 1rem;"></div>
+            </div>
+        </div>
+
+        <!-- Detailed Comparison -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">📊 Detailed Comparison</h2>
+            </div>
+            <div id="detailedComparison"></div>
+        </div>
+
+        <!-- Strengths and Weaknesses -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">✅ URL 1 Better At</h2>
+                </div>
+                <div id="url1Better"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">✅ URL 2 Better At</h2>
+                </div>
+                <div id="url2Better"></div>
+            </div>
+        </div>
+
+        <!-- Chart Visualization -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">📈 Visual Comparison</h2>
+            </div>
+            <div id="comparisonChart" class="chart-container"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+async function compareURLs() {
+    const url1 = document.getElementById('url1Input').value.trim();
+    const url2 = document.getElementById('url2Input').value.trim();
+    
+    if (!url1 || !url2) {
+        showError('Please enter both URLs');
+        return;
+    }
+    
+    // Show loading
+    document.getElementById('loadingSpinner').classList.add('active');
+    document.getElementById('resultsSection').classList.add('hidden');
+    document.getElementById('errorMessage').classList.remove('active');
+    
+    try {
+        const response = await fetch('/api/compare', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ url1, url2 })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            displayComparison(data);
+        } else {
+            showError(data.error || 'Comparison failed');
+        }
+    } catch (error) {
+        showError('Failed to compare URLs: ' + error.message);
+    } finally {
+        document.getElementById('loadingSpinner').classList.remove('active');
+    }
+}
+
+function displayComparison(data) {
+    document.getElementById('resultsSection').classList.remove('hidden');
+    
+    const { url1, url2, comparison } = data;
+    
+    // Display winner banner
+    displayWinner(comparison.winner, url1, url2);
+    
+    // Display URLs
+    document.getElementById('url1Display').textContent = url1.url;
+    document.getElementById('url2Display').textContent = url2.url;
+    
+    // Display scores
+    displayComparisonScores(url1, url2, comparison);
+    
+    // Display metrics
+    displayComparisonMetrics('url1Metrics', url1.scores);
+    displayComparisonMetrics('url2Metrics', url2.scores);
+    
+    // Mark winner
+    if (comparison.winner === 'url1') {
+        document.getElementById('url1Card').classList.add('winner');
+        document.getElementById('url2Card').classList.remove('winner');
+    } else if (comparison.winner === 'url2') {
+        document.getElementById('url2Card').classList.add('winner');
+        document.getElementById('url1Card').classList.remove('winner');
+    }
+    
+    // Display detailed comparison
+    displayDetailedComparison(url1, url2, comparison);
+    
+    // Display strengths
+    displayStrengths('url1Better', comparison.url1_better_at);
+    displayStrengths('url2Better', comparison.url2_better_at);
+    
+    // Create chart
+    createComparisonChart(url1.scores, url2.scores);
+}
+
+function displayWinner(winner, url1, url2) {
+    const banner = document.getElementById('winnerBanner');
+    
+    if (winner === 'tie') {
+        banner.innerHTML = `
+            <h2 style="color: var(--accent-primary); margin-bottom: 0.5rem;">🤝 It's a Tie!</h2>
+            <p style="color: var(--text-secondary);">Both websites have identical overall SEO scores.</p>
+        `;
+        banner.style.background = 'linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary))';
+        banner.style.border = '2px solid var(--accent-primary)';
+    } else {
+        const winnerUrl = winner === 'url1' ? url1.url : url2.url;
+        const winnerScore = winner === 'url1' ? url1.overall_score : url2.overall_score;
+        
+        banner.innerHTML = `
+            <h2 style="color: var(--success); margin-bottom: 0.5rem;">🏆 Winner: ${winner === 'url1' ? 'URL 1' : 'URL 2'}</h2>
+            <p style="color: var(--text-primary); margin-bottom: 0.5rem;">${winnerUrl}</p>
+            <p style="color: var(--text-secondary);">Overall Score: ${winnerScore}/10</p>
+        `;
+        banner.style.background = 'linear-gradient(135deg, rgba(52, 211, 153, 0.1), rgba(52, 211, 153, 0.05))';
+        banner.style.border = '2px solid var(--success)';
+    }
+}
+
+function displayComparisonScores(url1, url2, comparison) {
+    const score1 = document.getElementById('url1Score');
+    const score2 = document.getElementById('url2Score');
+    
+    score1.textContent = url1.overall_score;
+    score2.textContent = url2.overall_score;
+    
+    score1.className = getScoreClass(url1.overall_score);
+    score2.className = getScoreClass(url2.overall_score);
+}
+
+function displayComparisonMetrics(elementId, scores) {
+    const container = document.getElementById(elementId);
+    
+    const metrics = [
+        { name: 'Metadata', score: scores.metadata },
+        { name: 'Links', score: scores.links },
+        { name: 'Content', score: scores.content },
+        { name: 'Performance', score: scores.performance }
+    ];
+    
+    container.innerHTML = metrics.map(metric => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+            <span style="color: var(--text-secondary);">${metric.name}</span>
+            <span style="font-weight: bold; ${getScoreStyle(metric.score)}">${metric.score}</span>
+        </div>
+    `).join('');
+}
+
+function displayDetailedComparison(url1, url2, comparison) {
+    const container = document.getElementById('detailedComparison');
+    
+    const categories = [
+        { name: 'Metadata', key: 'metadata' },
+        { name: 'Links', key: 'links' },
+        { name: 'Content', key: 'content' },
+        { name: 'Performance', key: 'performance' }
+    ];
+    
+    let html = '<table class="data-table"><thead><tr><th>Category</th><th>URL 1</th><th>URL 2</th><th>Difference</th></tr></thead><tbody>';
+    
+    categories.forEach(cat => {
+        const score1 = url1.scores[cat.key];
+        const score2 = url2.scores[cat.key];
+        const diff = comparison.score_difference[cat.key];
+        const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '=';
+        const diffColor = diff > 0 ? 'var(--success)' : diff < 0 ? 'var(--danger)' : 'var(--text-secondary)';
+        
+        html += `
+            <tr>
+                <td><strong>${cat.name}</strong></td>
+                <td class="${getScoreClass(score1)}">${score1}</td>
+                <td class="${getScoreClass(score2)}">${score2}</td>
+                <td style="color: ${diffColor};">${arrow} ${Math.abs(diff).toFixed(1)}</td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function displayStrengths(elementId, items) {
+    const container = document.getElementById(elementId);
+    
+    if (items.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); padding: 1rem;">No significant advantages</p>';
+        return;
+    }
+    
+    container.innerHTML = items.map(item => `
+        <div style="background: var(--bg-tertiary); padding: 1rem; border-radius: 8px; margin-bottom: 0.5rem; border-left: 3px solid var(--success);">
+            <strong style="color: var(--accent-secondary);">${item.category}</strong>
+            <span style="color: var(--text-secondary); margin-left: 0.5rem;">+${item.difference.toFixed(1)} points</span>
+        </div>
+    `).join('');
+}
+
+function createComparisonChart(scores1, scores2) {
+    const ctx = document.getElementById('comparisonChart');
+    
+    // Clear previous chart if exists
+    if (window.comparisonChart) {
+        window.comparisonChart.destroy();
+    }
+    
+    const data = {
+        labels: ['Metadata', 'Links', 'Content', 'Performance'],
+        datasets: [
+            {
+                label: 'URL 1',
+                data: [scores1.metadata, scores1.links, scores1.content, scores1.performance],
+                backgroundColor: 'rgba(79, 150, 255, 0.2)',
+                borderColor: 'rgba(79, 150, 255, 1)',
+                borderWidth: 2,
+                pointBackgroundColor: 'rgba(79, 150, 255, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(79, 150, 255, 1)'
+            },
+            {
+                label: 'URL 2',
+                data: [scores2.metadata, scores2.links, scores2.content, scores2.performance],
+                backgroundColor: 'rgba(94, 234, 212, 0.2)',
+                borderColor: 'rgba(94, 234, 212, 1)',
+                borderWidth: 2,
+                pointBackgroundColor: 'rgba(94, 234, 212, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(94, 234, 212, 1)'
+            }
+        ]
+    };
+    
+    window.comparisonChart = new Chart(ctx, {
+        type: 'radar',
+        data: data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 10,
+                    ticks: {
+                        stepSize: 2,
+                        color: '#9aa0a6'
+                    },
+                    grid: {
+                        color: '#2d3748'
+                    },
+                    pointLabels: {
+                        color: '#e8eaed',
+                        font: {
+                            size: 14
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#e8eaed',
+                        font: {
+                            size: 14
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function getScoreClass(score) {
+    if (score >= 8) return 'score-good';
+    if (score >= 5) return 'score-warning';
+    return 'score-poor';
+}
+
+function getScoreStyle(score) {
+    if (score >= 8) return 'color: var(--success)';
+    if (score >= 5) return 'color: var(--warning)';
+    return 'color: var(--danger)';
+}
+
+function showError(message) {
+    const errorDiv = document.getElementById('errorMessage');
+    errorDiv.textContent = message;
+    errorDiv.classList.add('active');
+}
+</script>
+{% endblock %}
+

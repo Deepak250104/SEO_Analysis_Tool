@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Free, open-source SEO and GEO analysis tool. Analyze your website's SEO performance, compare with competitors, and get actionable recommendations.">
+    <title>{% block title %}SEO Analysis Tool{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <span>🔍</span> SEO Analyzer
+            </a>
+            <ul class="nav-links">
+                <li><a href="/" class="{% if request.path == '/' %}active{% endif %}">Home</a></li>
+                <li><a href="/analysis" class="{% if request.path == '/analysis' %}active{% endif %}">Analysis</a></li>
+                <li><a href="/comparison" class="{% if request.path == '/comparison' %}active{% endif %}">Compare</a></li>
+                <li><a href="/geo" class="{% if request.path == '/geo' %}active{% endif %}">GEO/Local</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2025 SEO Analysis Tool | Open Source | Built with Flask & Love</p>
+        <p style="margin-top: 0.5rem; font-size: 0.875rem;">
+            <a href="https://github.com" style="color: var(--accent-primary); text-decoration: none;">GitHub</a> | 
+            Free & Open Source
+        </p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+

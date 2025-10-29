@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}GEO/Local SEO Analysis - SEO Analyzer{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 style="margin-bottom: 2rem; text-align: center;">
+        <span style="background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+            Local & GEO SEO Analysis
+        </span>
+    </h1>
+
+    <!-- Input Section -->
+    <div class="input-section">
+        <div class="input-group">
+            <label for="urlInput">Website URL</label>
+            <input type="url" id="urlInput" placeholder="https://example.com" />
+        </div>
+        <div class="input-group">
+            <label for="locationInput">Target Location (Optional)</label>
+            <input type="text" id="locationInput" placeholder="New York, USA" value="United States" />
+        </div>
+        <button class="btn btn-primary btn-block" onclick="analyzeGEO()">Analyze Local SEO</button>
+    </div>
+
+    <!-- Error Message -->
+    <div id="errorMessage" class="error-message"></div>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="loading">
+        <div class="spinner"></div>
+        <p>Analyzing local SEO factors...</p>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsSection" class="hidden">
+        <!-- Overall GEO Score -->
+        <div class="score-display">
+            <div class="score-circle">
+                <span id="geoScore">0</span>
+            </div>
+            <div class="score-label">Local SEO Score</div>
+            <p id="analyzedUrl" style="margin-top: 1rem; color: var(--text-secondary); word-break: break-all;"></p>
+        </div>
+
+        <!-- NAP Analysis -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">📍 NAP (Name, Address, Phone) Analysis</h2>
+            </div>
+            <div id="napDetails"></div>
+        </div>
+
+        <!-- Schema Markup -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">🏷️ Schema Markup</h2>
+            </div>
+            <div id="schemaDetails"></div>
+        </div>
+
+        <!-- Local Keywords -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">🔑 Local Keywords</h2>
+            </div>
+            <div id="localKeywords"></div>
+        </div>
+
+        <!-- Issues & Recommendations -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">⚠️ Issues Found</h2>
+                </div>
+                <ul id="issuesList" class="issue-list"></ul>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">💡 Recommendations</h2>
+                </div>
+                <ul id="recommendationsList" class="recommendation-list"></ul>
+            </div>
+        </div>
+
+        <!-- Local SEO Tips -->
+        <div class="card" style="background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));">
+            <div class="card-header">
+                <h2 class="card-title">💡 Local SEO Best Practices</h2>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+                <div>
+                    <h4 style="color: var(--accent-secondary); margin-bottom: 0.5rem;">📝 NAP Consistency</h4>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                        Ensure your business Name, Address, and Phone number are identical across all online listings and directories.
+                    </p>
+                </div>
+                <div>
+                    <h4 style="color: var(--accent-secondary); margin-bottom: 0.5rem;">🗺️ Google Business Profile</h4>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                        Claim and optimize your Google Business Profile with complete information, photos, and regular updates.
+                    </p>
+                </div>
+                <div>
+                    <h4 style="color: var(--accent-secondary); margin-bottom: 0.5rem;">⭐ Reviews</h4>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                        Actively collect and respond to customer reviews on Google, Yelp, and industry-specific platforms.
+                    </p>
+                </div>
+                <div>
+                    <h4 style="color: var(--accent-secondary); margin-bottom: 0.5rem;">🏷️ Schema Markup</h4>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                        Implement LocalBusiness schema markup with complete NAP, hours, and geographic coordinates.
+                    </p>
+                </div>
+                <div>
+                    <h4 style="color: var(--accent-secondary); margin-bottom: 0.5rem;">📱 Mobile Optimization</h4>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                        Optimize for mobile users as most local searches happen on mobile devices with "near me" intent.
+                    </p>
+                </div>
+                <div>
+                    <h4 style="color: var(--accent-secondary); margin-bottom: 0.5rem;">🔗 Local Citations</h4>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                        Build citations in local directories, chambers of commerce, and industry-specific listings.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function analyzeGEO() {
+    const url = document.getElementById('urlInput').value.trim();
+    const location = document.getElementById('locationInput').value.trim();
+    
+    if (!url) {
+        showError('Please enter a URL');
+        return;
+    }
+    
+    // Show loading
+    document.getElementById('loadingSpinner').classList.add('active');
+    document.getElementById('resultsSection').classList.add('hidden');
+    document.getElementById('errorMessage').classList.remove('active');
+    
+    try {
+        const response = await fetch('/api/geo-analyze', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ url, location })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            displayResults(data);
+        } else {
+            showError(data.error || 'Analysis failed');
+        }
+    } catch (error) {
+        showError('Failed to analyze: ' + error.message);
+    } finally {
+        document.getElementById('loadingSpinner').classList.remove('active');
+    }
+}
+
+function displayResults(data) {
+    document.getElementById('resultsSection').classList.remove('hidden');
+    
+    const { url, location, results } = data;
+    
+    // Display score
+    document.getElementById('geoScore').textContent = results.score;
+    document.getElementById('analyzedUrl').textContent = `${url} | ${location}`;
+    
+    // Color code score
+    const scoreElement = document.getElementById('geoScore');
+    if (results.score >= 8) {
+        scoreElement.className = 'score-good';
+    } else if (results.score >= 5) {
+        scoreElement.className = 'score-warning';
+    } else {
+        scoreElement.className = 'score-poor';
+    }
+    
+    // Display NAP details
+    displayNAP(results.nap);
+    
+    // Display schema details
+    displaySchema(results.schema);
+    
+    // Display local keywords
+    displayLocalKeywords(results.local_keywords);
+    
+    // Display issues and recommendations
+    displayList('issuesList', results.issues);
+    displayList('recommendationsList', results.recommendations);
+}
+
+function displayNAP(nap) {
+    const container = document.getElementById('napDetails');
+    
+    const hasNAP = nap.has_nap;
+    const statusBadge = hasNAP ? 
+        '<span class="badge badge-success">Found</span>' : 
+        '<span class="badge badge-danger">Not Found</span>';
+    
+    let html = `<div style="margin-bottom: 1rem;"><strong>Status:</strong> ${statusBadge}</div>`;
+    
+    if (nap.phones.length > 0) {
+        html += `
+            <div style="margin-bottom: 1rem;">
+                <h4 style="color: var(--accent-secondary); margin-bottom: 0.5rem;">📞 Phone Numbers Found:</h4>
+                <ul style="color: var(--text-secondary);">
+                    ${nap.phones.map(phone => `<li>${phone}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    } else {
+        html += `<p style="color: var(--text-secondary);">No phone numbers found on the page.</p>`;
+    }
+    
+    if (nap.emails.length > 0) {
+        html += `
+            <div style="margin-bottom: 1rem;">
+                <h4 style="color: var(--accent-secondary); margin-bottom: 0.5rem;">📧 Email Addresses Found:</h4>
+                <ul style="color: var(--text-secondary);">
+                    ${nap.emails.map(email => `<li>${email}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    }
+    
+    container.innerHTML = html;
+}
+
+function displaySchema(schema) {
+    const container = document.getElementById('schemaDetails');
+    
+    const hasLocal = schema.has_local;
+    const statusBadge = hasLocal ? 
+        '<span class="badge badge-success">Implemented</span>' : 
+        '<span class="badge badge-danger">Missing</span>';
+    
+    let html = `<div style="margin-bottom: 1rem;"><strong>LocalBusiness Schema:</strong> ${statusBadge}</div>`;
+    
+    if (schema.found.length > 0) {
+        html += `
+            <div>
+                <h4 style="color: var(--accent-secondary); margin-bottom: 0.5rem;">Found Schema Types:</h4>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    ${schema.found.map(type => `<span class="badge badge-success">${type}</span>`).join('')}
+                </div>
+            </div>
+        `;
+    } else {
+        html += `
+            <p style="color: var(--text-secondary); margin-top: 1rem;">
+                No LocalBusiness or Organization schema markup found. Consider adding structured data to improve local SEO.
+            </p>
+        `;
+    }
+    
+    container.innerHTML = html;
+}
+
+function displayLocalKeywords(keywords) {
+    const container = document.getElementById('localKeywords');
+    
+    if (keywords.keywords.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary);">No local keywords detected. Consider adding location-based terms to your content.</p>';
+        return;
+    }
+    
+    container.innerHTML = `
+        <div style="margin-bottom: 1rem;">
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">Found ${keywords.count} local keyword(s):</p>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                ${keywords.keywords.map(kw => `<span class="badge badge-success">${kw}</span>`).join('')}
+            </div>
+        </div>
+        <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-tertiary); border-radius: 8px;">
+            <h4 style="color: var(--accent-secondary); margin-bottom: 0.5rem;">💡 Tip:</h4>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                Include location-specific keywords naturally in your content, title tags, and meta descriptions. 
+                Examples: "[Service] in [City]", "[Product] near me", "[City] [Business Type]"
+            </p>
+        </div>
+    `;
+}
+
+function displayList(elementId, items) {
+    const list = document.getElementById(elementId);
+    list.innerHTML = '';
+    
+    if (items.length === 0) {
+        list.innerHTML = '<li style="border: none; background: transparent; color: var(--text-secondary);">No items found</li>';
+        return;
+    }
+    
+    items.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item;
+        list.appendChild(li);
+    });
+}
+
+function showError(message) {
+    const errorDiv = document.getElementById('errorMessage');
+    errorDiv.textContent = message;
+    errorDiv.classList.add('active');
+}
+
+// Allow Enter key to trigger analysis
+document.getElementById('urlInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        analyzeGEO();
+    }
+});
+</script>
+{% endblock %}
+

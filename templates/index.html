@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}SEO Analysis Tool - Free SEO & GEO Analyzer{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Hero Section -->
+    <div class="hero">
+        <h1>Free SEO Analysis Tool</h1>
+        <p>Analyze your website's SEO performance, compare with competitors, and get actionable recommendations to improve your search rankings.</p>
+        <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
+            <a href="/analysis" class="btn btn-primary">Analyze URL</a>
+            <a href="/comparison" class="btn btn-secondary">Compare URLs</a>
+        </div>
+    </div>
+
+    <!-- Features -->
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon">📊</div>
+            <h3>Comprehensive SEO Analysis</h3>
+            <p>Get detailed insights into metadata, content quality, link structure, and overall SEO health with actionable scores.</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3>Performance Metrics</h3>
+            <p>Analyze page speed and performance using Google Lighthouse API. Get Core Web Vitals and optimization suggestions.</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">🔄</div>
+            <h3>Side-by-Side Comparison</h3>
+            <p>Compare two websites' SEO metrics side by side. Perfect for competitive analysis and benchmarking.</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">📍</div>
+            <h3>Local/GEO SEO</h3>
+            <p>Analyze local SEO factors including NAP consistency, local schema markup, and location-based optimization.</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">🔑</div>
+            <h3>Keyword Analysis</h3>
+            <p>Extract top keywords from your content, check keyword density, and get suggestions for improvement.</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">💡</div>
+            <h3>Actionable Recommendations</h3>
+            <p>Get specific, prioritized recommendations to improve your SEO based on industry best practices.</p>
+        </div>
+    </div>
+
+    <!-- Quick Start Section -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Quick Start</h2>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+            <div>
+                <h3 style="color: var(--accent-primary); margin-bottom: 0.5rem;">1. Enter URL</h3>
+                <p style="color: var(--text-secondary);">Enter the URL of the website you want to analyze or compare.</p>
+            </div>
+            <div>
+                <h3 style="color: var(--accent-primary); margin-bottom: 0.5rem;">2. Run Analysis</h3>
+                <p style="color: var(--text-secondary);">Our tool will analyze SEO factors including metadata, content, links, and performance.</p>
+            </div>
+            <div>
+                <h3 style="color: var(--accent-primary); margin-bottom: 0.5rem;">3. Get Results</h3>
+                <p style="color: var(--text-secondary);">Review scores, detailed metrics, and actionable recommendations to improve SEO.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features List -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">What We Analyze</h2>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+            <div>
+                <h4 style="color: var(--accent-secondary); margin-bottom: 0.5rem;">📝 Metadata Quality</h4>
+                <ul style="color: var(--text-secondary); margin-left: 1.5rem;">
+                    <li>Title tags optimization</li>
+                    <li>Meta descriptions</li>
+                    <li>Heading structure (H1-H4)</li>
+                    <li>Image alt text</li>
+                    <li>Open Graph tags</li>
+                </ul>
+            </div>
+            <div>
+                <h4 style="color: var(--accent-secondary); margin-bottom: 0.5rem;">🔗 Link Analysis</h4>
+                <ul style="color: var(--text-secondary); margin-left: 1.5rem;">
+                    <li>Internal link structure</li>
+                    <li>External link quality</li>
+                    <li>Anchor text optimization</li>
+                    <li>Broken link detection</li>
+                    <li>Nofollow link analysis</li>
+                </ul>
+            </div>
+            <div>
+                <h4 style="color: var(--accent-secondary); margin-bottom: 0.5rem;">📄 Content Quality</h4>
+                <ul style="color: var(--text-secondary); margin-left: 1.5rem;">
+                    <li>Word count & readability</li>
+                    <li>Keyword extraction</li>
+                    <li>Keyword density</li>
+                    <li>Content structure</li>
+                    <li>Quality scoring</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Open Source Notice -->
+    <div class="card" style="background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary)); border: 2px solid var(--accent-primary);">
+        <div style="text-align: center; padding: 1rem;">
+            <h2 style="color: var(--accent-primary); margin-bottom: 1rem;">🚀 Free & Open Source</h2>
+            <p style="color: var(--text-secondary); max-width: 700px; margin: 0 auto;">
+                This SEO analysis tool is completely free to use and open source. Built with Flask (Python) backend and vanilla HTML/CSS/JS frontend. Deploy it yourself or contribute to the project!
+            </p>
+            <div style="margin-top: 1.5rem;">
+                <a href="https://github.com" class="btn btn-primary" style="margin-right: 1rem;">View on GitHub</a>
+                <a href="/analysis" class="btn btn-secondary">Try Now</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
